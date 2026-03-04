@@ -38,6 +38,7 @@ services:
   postgres:
     image: postgres:18-alpine
     environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-PgChallenge!Pg}
       HR_DATABASE: ${HR_DATABASE:-hr}
       HR_USER: ${HR_USER:-hr_user}
@@ -47,7 +48,7 @@ services:
       HUB_PASSWORD: ${HUB_PASSWORD:-HubChallenge!Hub}
     volumes: [ postgres_data:/var/lib/postgresql/data, ./docker/pg-init-scripts:/docker-entrypoint-initdb.d/]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${HR_USER:-hr_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 10s
       retries: 5
