@@ -198,8 +198,25 @@ Client Request → HR Service → PostgreSQL → Event Published → RabbitMQ �
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/ayahiacs/microservices
 cd microservices
+
+# Copy env files
+cp .env.example .env
+cp ./hub-service/.env.example ./hub-service/.env
+cp ./hr-service/.env.example ./hr-service/.env
+
+# Initiate hr service                          
+docker compose run -i --user application hr composer install 
+docker compose run -i --user application hr php artisan key:generate
+docker compose run -i --user application hr php artisan migrate:fresh
+
+# Initiate hub service
+docker compose run -i --user application hub composer install
+docker compose run -i --user application hub php artisan key:generate
+
+# Optional: create dummy data for testing
+docker compose run -i --user application hr php artisan db:seed
 
 # Start all services
 docker compose up -d
@@ -211,8 +228,6 @@ docker compose up -d
 ```
 
 ### Environment Configuration
-
-Copy `.env.example` to `.env` and configure:
 
 ```bash
 # Database credentials
