@@ -1,0 +1,94 @@
+services:
+  hr:
+    image: webdevops/php-nginx:8.5-alpine
+    # build: { context: ./hr-service, dockerfile: Dockerfile }
+    container_name: hr
+    working_dir: /app    
+    volumes: [ "./hr-service:/app" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports: [ "8000:80" ]
+    environment:
+      - WEB_DOCUMENT_ROOT=/app/public
+    networks: [ apps_network ]
+
+  hub:
+    image: webdevops/php-nginx:8.5-alpine
+    # build: { context: ./hub-service, dockerfile: Dockerfile }
+    container_name: hub
+    working_dir: /app    
+    volumes: [ "./hub-service:/app", "./docker/hub/supervisord-rabbit-consume.conf:/opt/docker/etc/supervisor.d/rabbit-consume.conf" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports: [ "8001:80" ]
+    environment:
+      - WEB_DOCUMENT_ROOT=/app/public
+    networks: [ apps_network ]
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-PgChallenge!Pg}
+      HR_DATABASE: ${HR_DATABASE:-hr}
+      HR_USER: ${HR_USER:-hr_user}
+      HR_PASSWORD: ${HR_PASSWORD:-HrChallenge!Hr}
+      HUB_DATABASE: ${HUB_DATABASE:-hub}
+      HUB_USER: ${HUB_USER:-hub_user}
+      HUB_PASSWORD: ${HUB_PASSWORD:-HubChallenge!Hub}
+    volumes: [ postgres_data:/var/lib/postgresql/data, ./docker/pg-init-scripts:/docker-entrypoint-initdb.d/]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${HR_USER:-hr_user}"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks: [ apps_network ]
+
+  rabbitmq:
+    image: rabbitmq:4.2.4-management-alpine
+    ports: [ "5672:5672", "15672:15672" ]
+    healthcheck:
+      # Stage 3 health check: checks running status and local alarms
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s # Optional: helps with long initial boot times
+    networks: [ apps_network ]
+
+  redis:
+    image: redis:alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks: [ apps_network ]
+
+  soketi:
+    image: 'quay.io/soketi/soketi:latest-16-alpine'
+    ports: [ "6001:6001" ]
+    environment:
+      - SOKETI_DEFAULT_APP_ID=p_a_i_challenge
+      - SOKETI_DEFAULT_APP_KEY=p_a_k_challenge
+      - SOKETI_DEFAULT_APP_SECRET=p_a_s_challenge
+      - SOKETI_DEFAULT_APP_CLUSTER=p_a_c_challenge
+    networks: [ apps_network ]
+
+networks:
+  apps_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

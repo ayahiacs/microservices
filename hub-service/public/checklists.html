@@ -1,0 +1,555 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Live Checklists</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ff6b6b;
+      animation: pulse 2s infinite;
+    }
+    .status-indicator.connected {
+      background: #51cf66;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .controls {
+      padding: 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .country-selector {
+      padding: 8px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: #545b62;
+    }
+    .statistics {
+      padding: 20px;
+      background: #e9ecef;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    .stat-card {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #495057;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .checklists-container {
+      padding: 20px;
+    }
+    .employee-card {
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .employee-card.updating {
+      background: #fff3cd;
+      border-color: #ffc107;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .employee-header {
+      padding: 15px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .employee-name {
+      font-weight: 600;
+      font-size: 16px;
+      color: #495057;
+    }
+    .completion-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .completion-high {
+      background: #d4edda;
+      color: #155724;
+    }
+    .completion-medium {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .completion-low {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .fields-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 10px;
+      padding: 15px;
+    }
+    .field-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-radius: 4px;
+      background: #f8f9fa;
+    }
+    .field-item.complete {
+      background: #d4edda;
+    }
+    .field-item.incomplete {
+      background: #f8d7da;
+    }
+    .field-icon {
+      margin-right: 8px;
+      font-size: 16px;
+    }
+    .field-name {
+      font-weight: 500;
+      font-size: 14px;
+      flex: 1;
+    }
+    .field-value {
+      font-size: 12px;
+      color: #6c757d;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6c757d;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px;
+    }
+    .pagination {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .page-btn {
+      padding: 8px 12px;
+      border: 1px solid #dee2e6;
+      background: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .page-btn.active {
+      background: #007bff;
+      color: white;
+      border-color: #007bff;
+    }
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Live Employee Checklists</h1>
+      <div class="status">
+        <div class="status-indicator" id="connectionStatus"></div>
+        <span id="connectionText">Connecting...</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <select class="country-selector" id="countrySelector">
+        <option value="USA">USA</option>
+        <option value="GERMANY">Germany</option>
+        <option value="UK">UK</option>
+        <option value="FRANCE">France</option>
+      </select>
+      <button class="btn btn-primary" onclick="loadChecklists()">Refresh</button>
+      <button class="btn btn-secondary" onclick="toggleAutoRefresh()">
+        Auto Refresh: <span id="autoRefreshStatus">ON</span>
+      </button>
+    </div>
+
+    <div class="statistics" id="statistics">
+      <div class="stat-card">
+        <div class="stat-value" id="totalEmployees">-</div>
+        <div class="stat-label">Total Employees</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="avgCompletion">-</div>
+        <div class="stat-label">Avg Completion</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="completeEmployees">-</div>
+        <div class="stat-label">Complete</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="incompleteEmployees">-</div>
+        <div class="stat-label">Incomplete</div>
+      </div>
+    </div>
+
+    <div class="checklists-container">
+      <div id="loading" class="loading">Loading checklists...</div>
+      <div id="error" class="error" style="display: none;"></div>
+      <div id="checklists"></div>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <script src="https://js.pusher.com/8.0/pusher.min.js"></script>
+  <script>
+    // Soketi configuration
+    const key = 'p_a_k_challenge';
+    const host = 'localhost';
+    const port = '6001';
+    const cluster = 'p_a_c_challenge';
+
+    const opts = {
+      wsHost: host,
+      wsPort: port,
+      disableStats: true,
+      encrypted: false,
+      forceTLS: false,
+      enabledTransports: ['ws'],
+      cluster: cluster,
+    };
+
+    const pusher = new Pusher(key, opts);
+    let currentCountry = 'USA';
+    let currentPage = 1;
+    let currentPerPage = 10;
+    let autoRefresh = true;
+    let updateTimeout;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const country = urlParams.get('country');
+      if (country) {
+        currentCountry = country.toUpperCase();
+        document.getElementById('countrySelector').value = currentCountry;
+      }
+
+      loadChecklists();
+      setupSoketiConnection();
+    });
+
+    function setupSoketiConnection() {
+      pusher.connection.bind('connected', function() {
+        updateConnectionStatus(true);
+        console.log('Connected to Soketi');
+      });
+
+      pusher.connection.bind('error', function(err) {
+        updateConnectionStatus(false);
+        console.error('Soketi connection error:', err);
+      });
+
+      pusher.connection.bind('disconnected', function() {
+        updateConnectionStatus(false);
+        console.log('Disconnected from Soketi');
+      });
+
+      // Subscribe to checklist updates for the current country
+      updateSubscription();
+    }
+
+    function updateSubscription() {
+      // Unsubscribe from previous channel if exists
+      if (window.currentChannel) {
+        pusher.unsubscribe(window.currentChannel);
+      }
+
+      const channelName = `checklists.${currentCountry}`;
+      window.currentChannel = pusher.subscribe(channelName);
+
+      // Bind to employee events
+      window.currentChannel.bind('App\\Events\\EmployeeCreated', handleEmployeeUpdate);
+      window.currentChannel.bind('App\\Events\\EmployeeUpdated', handleEmployeeUpdate);
+      window.currentChannel.bind('App\\Events\\EmployeeDeleted', handleEmployeeUpdate);
+
+      // Fallback for generic events
+      window.currentChannel.bind_global(function(eventName, data) {
+        if (data && data.event && (data.event.includes('employee') || data.event.includes('checklist'))) {
+          console.log('Received checklist event:', eventName, data);
+          handleEmployeeUpdate();
+        }
+      });
+    }
+
+    function handleEmployeeUpdate() {
+      if (autoRefresh) {
+        // Debounce rapid updates
+        clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(() => {
+          loadChecklists();
+        }, 500);
+      }
+    }
+
+    function updateConnectionStatus(connected) {
+      const indicator = document.getElementById('connectionStatus');
+      const text = document.getElementById('connectionText');
+      
+      if (connected) {
+        indicator.classList.add('connected');
+        text.textContent = 'Connected';
+      } else {
+        indicator.classList.remove('connected');
+        text.textContent = 'Disconnected';
+      }
+    }
+
+    function loadChecklists() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const checklists = document.getElementById('checklists');
+      
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      checklists.innerHTML = '';
+
+      const params = new URLSearchParams({
+        country: currentCountry,
+        page: currentPage,
+        per_page: currentPerPage
+      });
+
+      fetch(`/api/checklists?${params}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          loading.style.display = 'none';
+          renderChecklists(data);
+          renderStatistics(data);
+          renderPagination(data);
+        })
+        .catch(err => {
+          loading.style.display = 'none';
+          error.style.display = 'block';
+          error.textContent = 'Failed to load checklists: ' + err.message;
+          console.error('Error loading checklists:', err);
+        });
+    }
+
+    function renderChecklists(data) {
+      const container = document.getElementById('checklists');
+      container.innerHTML = '';
+
+      if (!data.employees || data.employees.length === 0) {
+        container.innerHTML = '<div class="loading">No employees found for ' + data.country + '</div>';
+        return;
+      }
+
+      data.employees.forEach(employee => {
+        const card = createEmployeeCard(employee);
+        container.appendChild(card);
+      });
+    }
+
+    function createEmployeeCard(employee) {
+      const card = document.createElement('div');
+      card.className = 'employee-card';
+      card.id = `employee-${employee.id}`;
+
+      const completionClass = employee.completion_percentage >= 80 ? 'completion-high' :
+                              employee.completion_percentage >= 50 ? 'completion-medium' : 'completion-low';
+
+      card.innerHTML = `
+        <div class="employee-header">
+          <div class="employee-name">${employee.first_name} ${employee.last_name}</div>
+          <div class="completion-badge ${completionClass}">
+            ${employee.completion_percentage.toFixed(1)}%
+          </div>
+        </div>
+        <div class="fields-grid">
+          ${Object.entries(employee.fields).map(([fieldName, field]) => createFieldItem(fieldName, field)).join('')}
+        </div>
+      `;
+
+      return card;
+    }
+
+    function createFieldItem(fieldName, field) {
+      const fieldClass = field.complete ? 'complete' : 'incomplete';
+      const icon = field.complete ? '✅' : '❌';
+      const value = field.value || '-';
+
+      return `
+        <div class="field-item ${fieldClass}">
+          <div class="field-icon">${icon}</div>
+          <div class="field-name">${fieldName}</div>
+          <div class="field-value" title="${value}">${value}</div>
+        </div>
+      `;
+    }
+
+    function renderStatistics(data) {
+      const stats = data.statistics || {};
+      
+      document.getElementById('totalEmployees').textContent = stats.total_employees || 0;
+      document.getElementById('avgCompletion').textContent = 
+        stats.average_completion ? (stats.average_completion + '%') : '0%';
+      document.getElementById('completeEmployees').textContent = stats.complete_employees || 0;
+      document.getElementById('incompleteEmployees').textContent = stats.incomplete_employees || 0;
+    }
+
+    function renderPagination(data) {
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+
+      if (!data.meta || data.meta.total <= currentPerPage) {
+        return;
+      }
+
+      const totalPages = Math.ceil(data.meta.total / currentPerPage);
+      
+      // Previous button
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'page-btn';
+      prevBtn.textContent = 'Previous';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => goToPage(currentPage - 1);
+      pagination.appendChild(prevBtn);
+
+      // Page numbers
+      for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        pageBtn.textContent = i;
+        pageBtn.onclick = () => goToPage(i);
+        pagination.appendChild(pageBtn);
+      }
+
+      // Next button
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'page-btn';
+      nextBtn.textContent = 'Next';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => goToPage(currentPage + 1);
+      pagination.appendChild(nextBtn);
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      loadChecklists();
+    }
+
+    function toggleAutoRefresh() {
+      autoRefresh = !autoRefresh;
+      document.getElementById('autoRefreshStatus').textContent = autoRefresh ? 'ON' : 'OFF';
+    }
+
+    // Country change handler
+    document.getElementById('countrySelector').addEventListener('change', function(e) {
+      currentCountry = e.target.value.toUpperCase();
+      currentPage = 1;
+      updateSubscription();
+      loadChecklists();
+      
+      // Update URL
+      const url = new URL(window.location);
+      url.searchParams.set('country', currentCountry);
+      window.history.pushState({}, '', url);
+    });
+
+    // Show update animation when receiving live updates
+    function showUpdateAnimation(employeeId) {
+      const card = document.getElementById(`employee-${employeeId}`);
+      if (card) {
+        card.classList.add('updating');
+        setTimeout(() => {
+          card.classList.remove('updating');
+        }, 1000);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: hub
+      POSTGRES_USER: hub_user
+      POSTGRES_PASSWORD: HubChallenge!Hub
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  soketi:
+    image: quay.io/soketi/soketi:latest
+    ports:
+      - "6001:6001"
+    command: soketi start --app-name=hub --app-key=${SOKETI_APP_KEY:-hub} --app-secret=${SOKETI_APP_SECRET:-secret} --port=6001
+
+  hub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+      - soketi
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_QUEUE=hub.events
+      - CACHE_STORE=redis
+      - REDIS_HOST=redis
+      - BROADCAST_CONNECTION=soketi
+      - SOKETI_HOST=soketi
+    ports:
+      - "8000:8000"
+
+volumes:
+  db-data:
