@@ -93,7 +93,7 @@ The system follows an event-driven architecture pattern where services communica
 │        │        │    │  │ WebSocket │  │
 │        │        │    │  │ Server    │  │
 │        │        │    │  └───────────┘  │
-└─────────┬────────┘    └─────────┬────────┘
+└─────────┬───────┘    └─────────┬───────┘
           │                      │
           └──────────┬───────────┘
                      │
@@ -118,12 +118,13 @@ The system follows an event-driven architecture pattern where services communica
           └─────────────────┘
 
 External Clients:
-┌─────────────────┐    ┌─────────────────┐
-│   Web Client    │    │  Mobile Client  │
-│                 │    │                 │
-│  HTTP API       │    │  WebSocket      │
-│  WebSocket      │    │  HTTP API       │
-└─────────────────┘    └─────────────────┘
+┌─────────────────┐
+│     Client      │
+│                 │
+│  HR API         │
+│  Hub API        │
+│  WebSocket      │
+└─────────────────┘
 ```
 
 ### Data Flow Explanation
@@ -142,12 +143,6 @@ Client Request → HR Service → PostgreSQL → Event Published → RabbitMQ �
 4. **Message Consumption**: Hub Service consumes events from RabbitMQ queue
 5. **Cache Management**: Hub Service updates Redis cache with latest employee data
 6. **Real-time Updates**: Hub Service broadcasts changes to connected WebSocket clients
-
-#### 2. Real-time Data Aggregation Flow
-
-```
-Client WebSocket → Soketi → Hub Service → Redis Cache → Aggregated Response → WebSocket Broadcast
-```
 
 **Key characteristics:**
 
